@@ -49,6 +49,23 @@ that may exist within the PDF document. Each font object contains,
 The font names and sizes can be determined by using the show mode, which
 shows all font name/size combinations used in the PDF document.
 
+###Example Configuration File
+
+The following is an example, showing the metadata updates and a three level
+table of contents.
+
+    {
+      "title":"Mousetrap Building",
+      "author":"Jane Doe",
+      "subject":"Building a better mousetrap",
+      "keywords":"mousetrap, mouse, cheese",
+      "toc":[
+        { "font":"Optima-Bold", "size":24.0, "level":1 },
+        { "font":"Optima-Bold", "size":16.0, "level":2 },
+        { "font":"Optima-Bold", "size":14.0, "level":3 }
+      ]
+    }
+
 ##License
 
 MIT
