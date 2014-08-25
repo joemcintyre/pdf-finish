@@ -24,6 +24,11 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPa
  * Update metadata and create table of contents for PDF files.
  */
 public class PDFFinish {
+    public final static int NO_ERROR = 0;
+    public final static int READ_ERROR_INPUT_PDF = 100;
+    public final static int READ_ERROR_CONFIG = 101;
+    public final static int INVALID_CONFIG = 102;
+
     private String title;
     private String author;
     private String subject;
@@ -32,51 +37,64 @@ public class PDFFinish {
 
     /**
      * Constructor.
-     * 
-     * @param show Flag, show metadata and ToC only.
-     * @param fileConfig Configuration file.
-     * @param fileInput PDF input file.
-     * @param filenameOutput PDF output file name.
      */
-    public PDFFinish (boolean show, File fileConfig, File fileInput, String filenameOutput) {
+    public PDFFinish () {
+    }
+
+    /**
+     * Show PDF metadata. ToC, and font info.
+     * 
+     * @param fileInput PDF input file.
+     */
+    public int showInfo (File fileInput) {
         PDDocument document = null;
         try {
             document = PDDocument.load (fileInput);
         } catch (IOException e) {
             System.out.println ("Error reading input PDF: " + e);
-            System.exit (1);
+            return (READ_ERROR_INPUT_PDF);
         }
 
-        if (show) {
-            try {
-                showMetadata (document);
-            } catch (IOException e) {
-                System.out.println ("Error reading metadata: " + e);
-                System.exit (1);
-            }
-            showTOC (document);
-            showFonts (document);
-        } else {
-            JsonObject config = null;
+        try {
+            showMetadata (document);
+        } catch (IOException e) {
+            System.out.println ("Error reading metadata: " + e);
+            return (READ_ERROR_INPUT_PDF);
+        }
+        showTOC (document);
+        showFonts (document);
+        return (NO_ERROR);
+    }
 
-            File fileOutput = new File (filenameOutput);
+    /**
+     * Create new PDF with updated metadata and/or ToC.
+     * 
+     * @param fileConfig Configuration file.
+     * @param fileInput PDF input file.
+     * @param filenameOutput PDF output file name.
+     */
+    public int generatePDF (File fileConfig, File fileInput, String filenameOutput) {
+        JsonObject config = null;
+        File fileOutput = new File (filenameOutput);
 
-            try {
-                FileInputStream fis = new FileInputStream (fileConfig);
-                byte data[] = new byte[(int) fileConfig.length ()];
-                fis.read (data);
-                fis.close ();
+        try {
+            FileInputStream fis = new FileInputStream (fileConfig);
+            byte data[] = new byte[(int) fileConfig.length ()];
+            fis.read (data);
+            fis.close ();
 
-                String content = new String (data, "UTF-8");
-                config = JsonParser.object ().from (content);
-            } catch (Exception e) {
-                System.out.println ("Error reading configuration file: " + e);
-                System.exit (1);
-            }
+            String content = new String (data, "UTF-8");
+            config = JsonParser.object ().from (content);
+        } catch (Exception e) {
+            System.out.println ("Error reading configuration file: " + e);
+            return (READ_ERROR_CONFIG);
+        }
 
-            processConfig (config);
+        int error = processConfig (config);
+        if (error == NO_ERROR) {
             processPDF (fileInput, fileOutput);
         }
+        return (error);
     }
 
     /**
@@ -84,7 +102,7 @@ public class PDFFinish {
      * 
      * @param config JSON configuration object.
      */
-    private void processConfig (JsonObject config) {
+    private int processConfig (JsonObject config) {
         title = config.getString ("title");
         author = config.getString ("author");
         subject = config.getString ("subject");
@@ -94,14 +112,26 @@ public class PDFFinish {
         JsonArray headings = config.getArray ("toc");
         if (headings != null) {
             fontList = new ArrayList<PDFTextFinder.Font> ();
-            for (Object heading : headings) {
-                JsonObject h = (JsonObject) heading;
+            for (int index = 0; index < headings.size (); index ++) {
+                JsonObject h = (JsonObject) headings.get (index);
                 String font = h.getString ("font");
                 float size = h.getFloat ("size");
                 int level = h.getInt ("level");
+                
+                if (font == null) {
+                    System.out.println ("Missing font in toc element " + index);
+                    return (INVALID_CONFIG);
+                } else if (size == 0.0) {
+                    System.out.println ("Invalid font size in toc element " + index);
+                    return (INVALID_CONFIG);
+                } else if (level < 1) {
+                    System.out.println ("invalid level in toc element " + index);
+                    return (INVALID_CONFIG);
+                }
                 fontList.add (new PDFTextFinder.Font (font, size, level));
             }
         }
+        return (NO_ERROR);
     }
 
     /**

@@ -32,6 +32,6 @@ public class MainTest extends TestCase {
     public void testInvokeShow () {
         String args[] = {"-s"};
         int result = Main.invoke (args);
-        assertEquals (result, 1);
+        assertEquals (result, Main.GENERAL_ERROR);
     }
 }

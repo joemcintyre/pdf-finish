@@ -15,6 +15,9 @@ import org.apache.commons.cli.*;
  * Process command line and initiate application.
  */
 public class Main {
+    public final static int NO_ERROR = 0;
+    public final static int GENERAL_ERROR = 1;
+    
     private static Options options = null;
 
     /**
@@ -29,7 +32,7 @@ public class Main {
         } catch (Exception e) {
             System.out.println ("Uncaught exception " + e);
             e.printStackTrace ();
-            exitCode = 1;
+            exitCode = GENERAL_ERROR;
         }
 
         System.exit (exitCode);
@@ -43,8 +46,8 @@ public class Main {
      */
     public static int invoke (String args[]) {
         populateOptions ();
-        
-        boolean show = false;
+
+        int result = NO_ERROR;
         File fileInput = null;
         String filenameOutput = null;
         File fileConfig = null;
@@ -52,50 +55,50 @@ public class Main {
         CommandLine cmd = processCommandLine (args);
         if (cmd == null) {
             printUsage ();
-            return (1);
+            return (GENERAL_ERROR);
         }
 
         String filenameInput = cmd.getOptionValue ("i");
         if (filenameInput == null) {
             System.out.println ("PDF input file not specified");
             printUsage ();
-            return (1);
+            return (GENERAL_ERROR);
         } else {
             fileInput = new File (filenameInput);
             if (fileInput.exists () == false) {
                 System.out.println ("PDF input file does not exist");
                 printUsage ();
-                return (1);
+                return (GENERAL_ERROR);
             }
         }
 
+        PDFFinish finish = new PDFFinish ();
         if (cmd.hasOption ("s")) {
-            show = true;
+            result = finish.showInfo (fileInput);
         } else {
             filenameOutput = cmd.getOptionValue ("o");
             if (filenameOutput == null) {
                 System.out.println ("PDF output file not specified");
                 printUsage ();
-                return (1);
+                return (GENERAL_ERROR);
             }
 
             String filenameConfig = cmd.getOptionValue ("c");
             if (filenameConfig == null) {
                 System.out.println ("Configuration file not specified");
                 printUsage ();
-                return (1);
+                return (GENERAL_ERROR);
             } else {
                 fileConfig = new File (filenameConfig);
                 if (fileConfig.exists () == false) {
                     System.out.println ("Configuation file does not exist");
                     printUsage ();
-                    return (1);
+                    return (GENERAL_ERROR);
                 }
             }
+            result = finish.generatePDF (fileConfig, fileInput, filenameOutput);
         }
-
-        new PDFFinish (show, fileConfig, fileInput, filenameOutput);
-        return (0);
+        return (result);
     }
 
     /**
@@ -147,10 +150,10 @@ public class Main {
             cmd = parser.parse (options, args);
             if (cmd.hasOption ("v")) {
                 System.out.println ("Version 0.1.0");
-                System.exit (0);
+                System.exit (NO_ERROR);
             } else if (cmd.hasOption ("h")) {
                 printUsage ();
-                System.exit (0);
+                System.exit (NO_ERROR);
             } else {
                 if (cmd.hasOption ("s")) {
                     if (cmd.hasOption ("i")) {
