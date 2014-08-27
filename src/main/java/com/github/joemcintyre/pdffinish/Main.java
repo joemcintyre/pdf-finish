@@ -58,6 +58,14 @@ public class Main {
             return (GENERAL_ERROR);
         }
 
+        if (cmd.hasOption ("v")) {
+            System.out.println ("Version 0.1.0");
+            return (NO_ERROR);
+        } else if (cmd.hasOption ("h")) {
+            printUsage ();
+            return (NO_ERROR);
+        }
+
         String filenameInput = cmd.getOptionValue ("i");
         if (filenameInput == null) {
             System.out.println ("PDF input file not specified");
@@ -148,12 +156,8 @@ public class Main {
         CommandLineParser parser = new BasicParser ();
         try {
             cmd = parser.parse (options, args);
-            if (cmd.hasOption ("v")) {
-                System.out.println ("Version 0.1.0");
-                System.exit (NO_ERROR);
-            } else if (cmd.hasOption ("h")) {
-                printUsage ();
-                System.exit (NO_ERROR);
+            if (cmd.hasOption ("v") || cmd.hasOption ("h")) {
+                return (cmd);
             } else {
                 if (cmd.hasOption ("s")) {
                     if (cmd.hasOption ("i")) {
